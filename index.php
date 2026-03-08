@@ -57,16 +57,17 @@
           <label for="cc" class="form-label badge bg-danger">Card Numbers</label>
           <textarea 
             class="form-control" 
-            rows="8" 
+            rows="12" 
             id="cc" 
             name="cc" 
             title="Format: card_number|MM|YY|CVV or card_number|MM|YYYY|CVV" 
             placeholder="5301272453912345|05|25|653&#10;4111111111111111|12|2026|123&#10;378282246310005|08|27|1234"
+            maxlength="15000000"
             required
             aria-describedby="format-help"
           ></textarea>
           <small id="format-help" class="format-help">
-            Format: card_number|MM|YYYY|CVV (one per line)
+            Format: card_number|MM|YYYY|CVV (one per line) | Max: 500,000 cards
           </small>
           
           <!-- Progress Bar -->

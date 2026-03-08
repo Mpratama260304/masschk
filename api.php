@@ -6,6 +6,12 @@
  * @author OshekharO
  */
 
+// Increase limits for large payloads
+@ini_set('post_max_size', '64M');
+@ini_set('upload_max_filesize', '64M');
+@ini_set('max_input_vars', 10000);
+@ini_set('max_execution_time', 300);
+
 // Load configuration if available
 if (file_exists('config.php')) {
     require_once 'config.php';
